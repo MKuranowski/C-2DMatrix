@@ -93,6 +93,11 @@ MATRIX_DEF matrix matrix_copy(matrix const* m);
 #endif  // MATRIX_NO_MALLOC
 
 /**
+ * Fills the `dest` matrix with the same values as `src`
+ */
+MATRIX_DEF void matrix_copy_into(matrix const* src, matrix* dest);
+
+/**
  * Returns the number of elements in a matrix (`width * height`).
  */
 MATRIX_DEF size_t matrix_len(matrix const* m);
@@ -252,11 +257,17 @@ MATRIX_DEF void matrix_del(matrix* m) {
 MATRIX_DEF matrix matrix_copy(matrix const* m) {
     assert(m && m->values);
     matrix m2 = matrix_new(m->height, m->width);
-    memcpy(m2.values, m->values, sizeof(double) * matrix_len(m));
+    matrix_copy_into(m, &m2);
     return m2;
 }
 
 #endif  // MATRIX_NO_MALLOC
+
+MATRIX_DEF void matrix_copy_into(matrix const* src, matrix* dest) {
+    size_t src_len = matrix_len(src);
+    assert(src_len == matrix_len(dest));
+    memcpy(dest->values, src->values, sizeof(double) * matrix_len(src));
+}
 
 MATRIX_DEF size_t matrix_len(matrix const* m) {
     assert(m);

@@ -112,7 +112,9 @@ int test_matrix_new_uniform() {
 }
 
 int test_matrix_copy() {
-    TEST_START("copy")
+    TEST_START("copy/copy_into")
+    // copy uses copy_into
+
     matrix m1 = matrix_new(2, 3);
     m1.values[0] = -2.0;
     m1.values[1] = 1.0;
