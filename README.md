@@ -27,8 +27,13 @@ int main() {
     matrix_set(&m1, 1, 0, 1.5);
 
     matrix m3 = matrix_matmul(&m1, &m2);
-    printf("m3 size - %zu x %zu\n", m3.height, m3.width); // Outputs: m3 size - 1 x 1
-    matrix_print(&m3, stdout); // Outputs: 0.5
+    printf("m3 size - %zu x %zu\n", m3.height, m3.width);
+    matrix_print(&m3, stdout);
+
+    // Output:
+    // m3 size - 2 x 2
+    // 2.0 1.5
+    // -2.0 -1.5
 
     matrix_del(&m1);
     matrix_del(&m2);
