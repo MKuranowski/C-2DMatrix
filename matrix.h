@@ -140,6 +140,12 @@ MATRIX_DEF void matrix_mul_scalar(matrix* a, double b);
 MATRIX_DEF void matrix_pow_scalar(matrix* a, double b);
 
 /**
+ * Maps a function to every cell of the matrix,
+ * such that `m_ij = func(m_ij)`.
+ */
+MATRIX_DEF void matrix_map(matrix* m, double(*func)(double));
+
+/**
  * Performs the matrix multiplication of a and b.
  * a's width must be the same as b's height.
  *
@@ -150,22 +156,30 @@ MATRIX_DEF matrix matrix_matmul(matrix const* a, matrix const* b);
 
 /**
  * Returns a new matrix that is the result of transposing `m`.
+ * Consider using `matrix_copy` with `matrix_transpose`; as that's
+ * a much more efficient implementation for smaller matrices.
+ *
  * The new matrix needs to be then deallocated with `matrix_del`.
  */
 MATRIX_DEF matrix matrix_transposed(matrix* m);
 
 /**
- * Maps a function to every cell of the matrix,
- * such that `m_ij = func(m_ij)`.
+ * In-place version of matrix_transposed.
+ *
+ * For non-square matrices, that are not column or row vectors
+ * (aka. `m->width != m->height && m->width != 1 && m->height != 1`)
+ * the size must be at most 64.
  */
-MATRIX_DEF void matrix_map(matrix* m, double(*func)(double));
+MATRIX_DEF void matrix_transpose(matrix* m);
 
 #endif  // MATRIX_H
 #ifdef MATRIX_IMPLEMENTATION
 
 #include <assert.h>
 #include <math.h>
+#include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -312,6 +326,15 @@ MATRIX_DEF void matrix_pow_scalar(matrix* a, double b) {
         a->values[i] = pow(a->values[i], b);
 }
 
+MATRIX_DEF void matrix_map(matrix* m, double(*func)(double)) {
+    assert(m && m->values);
+    size_t end = matrix_len(m);
+
+    for (size_t i = 0; i < end; ++i) {
+        m->values[i] = func(m->values[i]);
+    }
+}
+
 MATRIX_DEF matrix matrix_matmul(matrix const* a, matrix const* b) {
     assert(a && a->values);
     assert(b && b->values);
@@ -352,13 +375,90 @@ MATRIX_DEF matrix matrix_transposed(matrix* m) {
     return transposed;
 }
 
-MATRIX_DEF void matrix_map(matrix* m, double(*func)(double)) {
-    assert(m && m->values);
-    size_t end = matrix_len(m);
+// Private helpers for the in-place transpose
+MATRIX_DEF uint_fast64_t matrix__set_bit(uint_fast64_t bit_set, uint_fast64_t idx) {
+    return bit_set | (1ul << idx);
+}
 
-    for (size_t i = 0; i < end; ++i) {
-        m->values[i] = func(m->values[i]);
+MATRIX_DEF bool matrix__has_bit(uint_fast64_t bit_set, uint_fast64_t idx) {
+    return (bit_set & (1ul << idx)) != 0;
+}
+
+MATRIX_DEF void matrix__transpose_small_rectangle(matrix* m) {
+    uint_fast64_t swapped_set = 0;
+    size_t size = matrix_len(m) - 1;
+
+    assert(size < 64); // Only sizes up to 64 elements are supported
+    // First and last elements are always in correct places
+    // TODO: We could allow sizes up to 66 if we didn't store that info
+    // TODO: Maybe with VLAs we could allow arbitrary big matrices?
+    swapped_set = matrix__set_bit(swapped_set, 0);
+    swapped_set = matrix__set_bit(swapped_set, size);
+
+    size_t i = 1;
+    size_t cycle_begin;
+    size_t next;
+    double temp;
+    double swap_temp;
+
+    while (i < size) {
+        cycle_begin = i;
+        temp = m->values[i];
+
+        do {
+            next = (i * m->height) % size;
+
+            // Swap next with temp
+            swap_temp = m->values[next];
+            m->values[next] = temp;
+            temp = swap_temp;
+
+            swapped_set = matrix__set_bit(swapped_set, i);
+            i = next;
+        } while (i != cycle_begin);
+
+        // Find the next cycle
+        for (i = 1; i < size && matrix__has_bit(swapped_set, i); ++i);
+    }
+
+    // Swap width and height
+    i = m->height;
+    m->height = m->width;
+    m->width = i;
+}
+
+MATRIX_DEF void matrix__transpose_square(matrix* m) {
+    assert(m->width == m->height);
+    double temp;
+
+    for (size_t i = 0; i < m->height - 1; ++i) {
+        for (size_t j = i + 1; j < m->height; ++j) {
+            temp = matrix_get(m, i, j);
+            matrix_set(m, i, j, matrix_get(m, j, i));
+            matrix_set(m, j, i, temp);
+        }
     }
 }
+
+MATRIX_DEF void matrix__transpose_single_col_or_row(matrix* m) {
+    assert(m->width == 1 || m->height == 1);
+
+    // Swap width and height
+    int temp = m->height;
+    m->height = m->width;
+    m->width = temp;
+}
+
+MATRIX_DEF void matrix_transpose(matrix* m) {
+    assert(m && m->values);
+
+    if (m->width == 1 || m->height == 1)
+        matrix__transpose_single_col_or_row(m);
+    else if (m->width == m->height)
+        matrix__transpose_square(m);
+    else
+        matrix__transpose_small_rectangle(m);
+}
+
 
 #endif // MATRIX_IMPLEMENTATION

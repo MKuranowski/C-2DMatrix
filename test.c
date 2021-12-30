@@ -281,17 +281,22 @@ int test_matrix_transposed_column() {
 int test_matrix_transposed_square() {
     TEST_START("transposed_square");
 
-    double m1_vals[4] = {1.0, 2.0, 3.0, 4.0};
-    matrix m1 = {2, 2, m1_vals};
+    double m1_vals[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
+    matrix m1 = {3, 3, m1_vals};
 
     matrix m2 = matrix_transposed(&m1);
-    TEST_SIZE_EQ("m2.height", 2lu, m2.height);
-    TEST_SIZE_EQ("m2.width", 2lu, m2.width);
+    TEST_SIZE_EQ("m2.height", 3lu, m2.height);
+    TEST_SIZE_EQ("m2.width", 3lu, m2.width);
 
     TEST_DEQ("m2.values[0]", 1.0, m2.values[0]);
-    TEST_DEQ("m2.values[1]", 3.0, m2.values[1]);
-    TEST_DEQ("m2.values[2]", 2.0, m2.values[2]);
-    TEST_DEQ("m2.values[3]", 4.0, m2.values[3]);
+    TEST_DEQ("m2.values[1]", 4.0, m2.values[1]);
+    TEST_DEQ("m2.values[2]", 7.0, m2.values[2]);
+    TEST_DEQ("m2.values[3]", 2.0, m2.values[3]);
+    TEST_DEQ("m2.values[4]", 5.0, m2.values[4]);
+    TEST_DEQ("m2.values[5]", 8.0, m2.values[5]);
+    TEST_DEQ("m2.values[6]", 3.0, m2.values[6]);
+    TEST_DEQ("m2.values[7]", 6.0, m2.values[7]);
+    TEST_DEQ("m2.values[8]", 9.0, m2.values[8]);
 
     matrix_del(&m2);
     TEST_END;
@@ -318,6 +323,65 @@ int test_matrix_transposed_rectangle() {
     TEST_END;
 }
 
+int test_matrix_transpose_column() {
+    TEST_START("transpose_column");
+
+    double m_vals[2] = {1.0, 2.0};
+    matrix m = {2, 1, m_vals};
+
+    matrix_transpose(&m);
+    TEST_SIZE_EQ("m.height", 1lu, m.height);
+    TEST_SIZE_EQ("m.width", 2lu, m.width);
+
+    TEST_DEQ("m.values[0]", 1.0, m.values[0]);
+    TEST_DEQ("m.values[1]", 2.0, m.values[1]);
+
+    TEST_END;
+}
+
+int test_matrix_transpose_square() {
+    TEST_START("transpose_square");
+
+    double m_vals[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
+    matrix m = {3, 3, m_vals};
+
+    matrix_transpose(&m);
+    TEST_SIZE_EQ("m.height", 3lu, m.height);
+    TEST_SIZE_EQ("m.width", 3lu, m.width);
+
+    TEST_DEQ("m.values[0]", 1.0, m.values[0]);
+    TEST_DEQ("m.values[1]", 4.0, m.values[1]);
+    TEST_DEQ("m.values[2]", 7.0, m.values[2]);
+    TEST_DEQ("m.values[3]", 2.0, m.values[3]);
+    TEST_DEQ("m.values[4]", 5.0, m.values[4]);
+    TEST_DEQ("m.values[5]", 8.0, m.values[5]);
+    TEST_DEQ("m.values[6]", 3.0, m.values[6]);
+    TEST_DEQ("m.values[7]", 6.0, m.values[7]);
+    TEST_DEQ("m.values[8]", 9.0, m.values[8]);
+
+    TEST_END;
+}
+
+int test_matrix_transpose_rectangle() {
+    TEST_START("transpose_rectangle");
+
+    double m_vals[6] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+    matrix m = {2, 3, m_vals};
+
+    matrix_transpose(&m);
+    TEST_SIZE_EQ("m.height", 3lu, m.height);
+    TEST_SIZE_EQ("m.width", 2lu, m.width);
+
+    TEST_DEQ("m.values[0]", 1.0, m.values[0]);
+    TEST_DEQ("m.values[1]", 4.0, m.values[1]);
+    TEST_DEQ("m.values[2]", 2.0, m.values[2]);
+    TEST_DEQ("m.values[3]", 5.0, m.values[3]);
+    TEST_DEQ("m.values[4]", 3.0, m.values[4]);
+    TEST_DEQ("m.values[5]", 6.0, m.values[5]);
+
+    TEST_END;
+}
+
 double random_linear_func(double x) { return 2.0 * x - 4.0; }
 
 int test_matrix_map() {
@@ -339,7 +403,7 @@ int test_matrix_map() {
 // Entry point
 
 int main() {
-    int total_tests = 17;
+    int total_tests = 20;
     int failed = 0;
 
     failed += test_matrix_new_get_set();
@@ -354,11 +418,14 @@ int main() {
     failed += test_matrix_sub_scalar();
     failed += test_matrix_mul_scalar();
     failed += test_matrix_pow_scalar();
+    failed += test_matrix_map();
     failed += test_matrix_matmul();
     failed += test_matrix_transposed_column();
     failed += test_matrix_transposed_square();
     failed += test_matrix_transposed_rectangle();
-    failed += test_matrix_map();
+    failed += test_matrix_transpose_column();
+    failed += test_matrix_transpose_square();
+    failed += test_matrix_transpose_rectangle();
 
     int succeeded = total_tests - failed;
     fprintf(stderr,
