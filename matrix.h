@@ -32,6 +32,8 @@ typedef struct {
     double* values;
 } matrix;
 
+#ifndef MATRIX_NO_MALLOC
+
 /**
  * Allocates a new matrix with the provided size.
  * No guarantees are made as to the contents of the matrix.
@@ -74,16 +76,19 @@ MATRIX_DEF matrix matrix_new_uniform(size_t height, size_t width, double a, doub
 MATRIX_DEF void matrix_del(matrix* m);
 
 /**
- * Returns the number of elements in a matrix (`width * height`).
- */
-MATRIX_DEF size_t matrix_len(matrix const* m);
-
-/**
  * Creates a new matrix with the same size and elements as `m`.
  *
  * Returned matrix needs to be later destroyed with `matrix_del`.
  */
 MATRIX_DEF matrix matrix_copy(matrix const* m);
+
+#endif  // MATRIX_NO_MALLOC
+
+/**
+ * Returns the number of elements in a matrix (`width * height`).
+ */
+MATRIX_DEF size_t matrix_len(matrix const* m);
+
 
 /**
  * Dumps the matrix into a sink.
@@ -145,6 +150,8 @@ MATRIX_DEF void matrix_pow_scalar(matrix* a, double b);
  */
 MATRIX_DEF void matrix_map(matrix* m, double(*func)(double));
 
+#ifndef MATRIX_NO_MALLOC
+
 /**
  * Performs the matrix multiplication of a and b.
  * a's width must be the same as b's height.
@@ -153,6 +160,8 @@ MATRIX_DEF void matrix_map(matrix* m, double(*func)(double));
  * The new matrix needs to be then deallocated with `matrix_del`.
  */
 MATRIX_DEF matrix matrix_matmul(matrix const* a, matrix const* b);
+
+#endif  // MATRIX_NO_MALLOC
 
 /**
  * Performs the matrix multiplication of a and b.
@@ -164,6 +173,7 @@ MATRIX_DEF matrix matrix_matmul(matrix const* a, matrix const* b);
  */
 MATRIX_DEF void matrix_matmul_into(matrix const* a, matrix const* b, matrix* dest);
 
+#ifndef MATRIX_NO_MALLOC
 
 /**
  * Returns a new matrix that is the result of transposing `m`.
@@ -173,6 +183,8 @@ MATRIX_DEF void matrix_matmul_into(matrix const* a, matrix const* b, matrix* des
  * The new matrix needs to be then deallocated with `matrix_del`.
  */
 MATRIX_DEF matrix matrix_transposed(matrix* m);
+
+#endif  // MATRIX_NO_MALLOC
 
 /**
  * In-place version of matrix_transposed.
@@ -194,6 +206,8 @@ MATRIX_DEF void matrix_transpose(matrix* m);
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifndef MATRIX_NO_MALLOC
 
 MATRIX_DEF matrix matrix_new(size_t height, size_t width) {
     matrix m;
@@ -245,16 +259,18 @@ MATRIX_DEF void matrix_del(matrix* m) {
     m->values = NULL;
 }
 
-MATRIX_DEF size_t matrix_len(matrix const* m) {
-    assert(m);
-    return m->height * m->width;
-}
-
 MATRIX_DEF matrix matrix_copy(matrix const* m) {
     assert(m && m->values);
     matrix m2 = matrix_new(m->height, m->width);
     memcpy(m2.values, m->values, sizeof(double) * matrix_len(m));
     return m2;
+}
+
+#endif  // MATRIX_NO_MALLOC
+
+MATRIX_DEF size_t matrix_len(matrix const* m) {
+    assert(m);
+    return m->height * m->width;
 }
 
 MATRIX_DEF void matrix_print(matrix const* m, FILE* sink) {
@@ -346,6 +362,8 @@ MATRIX_DEF void matrix_map(matrix* m, double(*func)(double)) {
     }
 }
 
+#ifndef MATRIX_NO_MALLOC
+
 MATRIX_DEF matrix matrix_matmul(matrix const* a, matrix const* b) {
     assert(a && a->values);
     assert(b && b->values);
@@ -356,6 +374,8 @@ MATRIX_DEF matrix matrix_matmul(matrix const* a, matrix const* b) {
 
     return multiplied;
 }
+
+#endif  // MATRIX_NO_MALLOC
 
 MATRIX_DEF void matrix_matmul_into(matrix const* a, matrix const* b, matrix* dest) {
     assert(a && a->values);
@@ -379,6 +399,8 @@ MATRIX_DEF void matrix_matmul_into(matrix const* a, matrix const* b, matrix* des
     }
 }
 
+#ifndef MATRIX_NO_MALLOC
+
 MATRIX_DEF matrix matrix_transposed(matrix* m) {
     assert(m && m->values);
     matrix transposed = matrix_new(m->width, m->height);
@@ -396,6 +418,8 @@ MATRIX_DEF matrix matrix_transposed(matrix* m) {
 
     return transposed;
 }
+
+#endif  // MATRIX_NO_MALLOC
 
 // Private helpers for the in-place transpose
 MATRIX_DEF uint_fast64_t matrix__set_bit(uint_fast64_t bit_set, uint_fast64_t idx) {

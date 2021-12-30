@@ -1,7 +1,6 @@
 # C-2DMatrix
 
-STB-Style, simple, dynamically-allocated 2D matrix of doubles;
-with a few most useful operations on matrices.
+STB-Style, simple, 2D matrix of doubles with a few most useful operations on matrices.
 
 
 ### Quick Start
@@ -43,6 +42,16 @@ int main() {
 ```
 
 See <https://github.com/nothings/stb> for more info on the STB-style libraries.
+
+### No dynamic allocations
+
+It is possible to avoid dynamic allocations of matrices altogether.
+This is useful if e.g. matrix sizes are known at compile time.
+
+Take a look at `test.c` - most of the function don't use `matrix_new`/`_del`/`_copy`.
+
+For convince, if `MATRIX_NO_MALLOC` is defined, declarations and definitions
+for functions using dynamic memory are not provided at all.
 
 
 ### Running tests

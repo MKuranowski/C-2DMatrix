@@ -109,13 +109,6 @@ int test_matrix_new_uniform() {
     TEST_END;
 }
 
-int test_matrix_len() {
-    TEST_START("len")
-    matrix m = {.height = 2, .width = 3, .values = NULL};
-    TEST_SIZE_EQ("matrix_len(m)", 6lu, matrix_len(&m));
-    TEST_END;
-}
-
 int test_matrix_copy() {
     TEST_START("copy")
     matrix m1 = matrix_new(2, 3);
@@ -139,6 +132,13 @@ int test_matrix_copy() {
 
     matrix_del(&m1);
     matrix_del(&m2);
+    TEST_END;
+}
+
+int test_matrix_len() {
+    TEST_START("len")
+    matrix m = {.height = 2, .width = 3, .values = NULL};
+    TEST_SIZE_EQ("matrix_len(m)", 6lu, matrix_len(&m));
     TEST_END;
 }
 
