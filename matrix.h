@@ -146,6 +146,12 @@ MATRIX_DEF void matrix_add(matrix* a, matrix const* b);
 MATRIX_DEF void matrix_sub(matrix* a, matrix const* b);
 
 /**
+ * Performs element-wise multiplication of a by b.
+ * such that ` a_ij = a_ij * b_ij`.
+ */
+MATRIX_DEF void matrix_mul(matrix* a, matrix const* b);
+
+/**
  * Adds a scalar to every cell of a matrix,
  * such that `a_ij = a_ij + b`.
  */
@@ -339,6 +345,17 @@ MATRIX_DEF void matrix_sub(matrix* a, matrix const* b) {
 
     for (size_t i = 0; i < end; ++i)
         a->values[i] -= b->values[i];
+}
+
+MATRIX_DEF void matrix_mul(matrix* a, matrix const* b) {
+    assert(a && a->values);
+    assert(b && b->values);
+    assert(a->height == b->height);
+    assert(a->width == b->width);
+    size_t end = matrix_len(a);
+
+    for (size_t i = 0; i < end; ++i)
+        a->values[i] *= b->values[i];
 }
 
 MATRIX_DEF void matrix_add_scalar(matrix* a, double b) {
