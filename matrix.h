@@ -5,7 +5,7 @@
  * SPDX-License-Identifier: WTFPL
  *
  * @author Mikołaj Kuranowski
- * @version 1.0.0
+ * @version 1.1.0
  * @copyright Copyright (c) 2021, Mikolaj Kuranowski
  */
 
