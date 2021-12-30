@@ -155,6 +155,17 @@ MATRIX_DEF void matrix_map(matrix* m, double(*func)(double));
 MATRIX_DEF matrix matrix_matmul(matrix const* a, matrix const* b);
 
 /**
+ * Performs the matrix multiplication of a and b.
+ * a's width must be the same as b's height,
+ * dest's height must be the same as a's height and
+ * dest's width must be the same as b's width.
+ *
+ * This function is useful if you want to avoid malloc completely.
+ */
+MATRIX_DEF void matrix_matmul_into(matrix const* a, matrix const* b, matrix* dest);
+
+
+/**
  * Returns a new matrix that is the result of transposing `m`.
  * Consider using `matrix_copy` with `matrix_transpose`; as that's
  * a much more efficient implementation for smaller matrices.
@@ -341,20 +352,31 @@ MATRIX_DEF matrix matrix_matmul(matrix const* a, matrix const* b) {
     assert(a->width == b->height);
 
     matrix multiplied = matrix_new(a->height, b->width);
+    matrix_matmul_into(a, b, &multiplied);
+
+    return multiplied;
+}
+
+MATRIX_DEF void matrix_matmul_into(matrix const* a, matrix const* b, matrix* dest) {
+    assert(a && a->values);
+    assert(b && b->values);
+    assert(dest && dest->values);
+    assert(a->width == b->height);
+    assert(dest->height == a->height);
+    assert(dest->width == b->width);
+
     size_t common_len = a->width;
 
-    for (size_t row = 0; row < multiplied.height; ++row) {
-        for (size_t col = 0; col < multiplied.width; ++col) {
-            size_t field = row * multiplied.width + col;
-            multiplied.values[field] = 0.0;
+    for (size_t row = 0; row < dest->height; ++row) {
+        for (size_t col = 0; col < dest->width; ++col) {
+            size_t field = row * dest->width + col;
+            dest->values[field] = 0.0;
 
             for (size_t i = 0; i < common_len; ++i) {
-                multiplied.values[field] += matrix_get(a, row, i) * matrix_get(b, i, col);
+                dest->values[field] += matrix_get(a, row, i) * matrix_get(b, i, col);
             }
         }
     }
-
-    return multiplied;
 }
 
 MATRIX_DEF matrix matrix_transposed(matrix* m) {
