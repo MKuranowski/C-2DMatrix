@@ -75,7 +75,8 @@ int test_matrix_new_zeroed() {
 }
 
 int test_matrix_new_repeated() {
-    TEST_START("new_repeated");
+    TEST_START("new_repeated/fill_scalar");
+    // new_repeated uses fill_scalar
 
     matrix m = matrix_new_repeated(1, 2, 3.14);
     TEST_SIZE_EQ("m.height", 1lu, m.height);
@@ -89,7 +90,8 @@ int test_matrix_new_repeated() {
 }
 
 int test_matrix_new_uniform() {
-    TEST_START("new_uniform");
+    TEST_START("new_uniform/fill_uniform");
+    // new_uniform uses fill_uniform
     srand(420);  // To makes test reproducible
 
     matrix m = matrix_new_uniform(10, 10, -2.0, 4.0);

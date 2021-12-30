@@ -38,13 +38,17 @@ typedef struct {
  * Allocates a new matrix with the provided size.
  * No guarantees are made as to the contents of the matrix.
  *
- * Such matrix needs to be later destroyed with @ref matrix_del
+ * Such matrix needs to be later destroyed with `matrix_del`.
  */
 MATRIX_DEF matrix matrix_new(size_t height, size_t width);
 
 /**
  * Allocates a new matrix with the provided size, and then
  * fills every cell with `0.0`.
+ *
+ * On some platforms this function might be faster than
+ * a `matrix_new` followed by `matrix_fill_scalar` - as
+ * `matrix_new_zeroed` uses calloc.
  *
  * Such matrix needs to be later destroyed with `matrix_del`.
  */
@@ -53,6 +57,8 @@ MATRIX_DEF matrix matrix_new_zeroed(size_t height, size_t width);
 /**
  * Allocates a new matrix with the provided size, and then
  * fills every cell with `x`.
+ *
+ * Equivalent to `matrix_new `followed by `matrix_fill_scalar`.
  *
  * Such matrix needs to be later destroyed with `matrix_del`.
  */
@@ -64,6 +70,8 @@ MATRIX_DEF matrix matrix_new_repeated(size_t height, size_t width, double x);
  *
  * This function uses `rand()` internally, so make sure
  * to initialize the random seed with `srand()` beforehand!
+ *
+ * Equivalent to `matrix_new `followed by `matrix_fill_uniform`.
  *
  * Such matrix needs to be later destroyed with `matrix_del`.
  */
@@ -89,7 +97,6 @@ MATRIX_DEF matrix matrix_copy(matrix const* m);
  */
 MATRIX_DEF size_t matrix_len(matrix const* m);
 
-
 /**
  * Dumps the matrix into a sink.
  * Rows are separated by a '\n'; columns by a ' '.
@@ -107,6 +114,19 @@ MATRIX_DEF double matrix_get(matrix const* m, size_t row, size_t col);
  * Shorthand for `m->values[row * m->width + col] = value`
  */
 MATRIX_DEF void matrix_set(matrix const* m, size_t row, size_t col, double value);
+
+/**
+ * Replaces every cell of matrix `m` with `value`.
+ */
+MATRIX_DEF void matrix_fill_scalar(matrix* m, double value);
+
+/**
+ * Replaces every cell of matrix `m` with a random value between `a` and `b`.
+ *
+ * This function uses `rand()` internally, so make sure
+ * to initialize the random seed with `srand()` beforehand!
+ */
+MATRIX_DEF void matrix_fill_uniform(matrix* m, double a, double b);
 
 /**
  * Performs element-wise addition of b into a,
@@ -229,26 +249,13 @@ MATRIX_DEF matrix matrix_new_zeroed(size_t height, size_t width) {
 
 MATRIX_DEF matrix matrix_new_repeated(size_t height, size_t width, double x) {
     matrix m = matrix_new(height, width);
-    size_t end = matrix_len(&m);
-    for (size_t i = 0; i < end; ++i) {
-        m.values[i] = x;
-    }
-
+    matrix_fill_scalar(&m, x);
     return m;
 }
 
 MATRIX_DEF matrix matrix_new_uniform(size_t height, size_t width, double a, double b) {
-    assert(b > a);
-    double len = b - a;
-    double r;
-
     matrix m = matrix_new(height, width);
-    size_t end = matrix_len(&m);
-    for (size_t i = 0; i < end; ++i) {
-        r = (double)rand() / (double)RAND_MAX;  // Generate a random float in range <0, 1>
-        m.values[i] = a + r * len;  // Interpolate the random number to be in correct range
-    }
-
+    matrix_fill_uniform(&m, a, b);
     return m;
 }
 
@@ -297,6 +304,25 @@ MATRIX_DEF void matrix_set(matrix const* m, size_t row, size_t col, double value
     assert(col < m->width);
 
     m->values[row * m->width + col] = value;
+}
+
+MATRIX_DEF void matrix_fill_scalar(matrix* m, double value) {
+    size_t end = matrix_len(m);
+    for (size_t i = 0; i < end; ++i) {
+        m->values[i] = value;
+    }
+}
+
+MATRIX_DEF void matrix_fill_uniform(matrix* m, double a, double b) {
+    assert(b > a);
+    double len = b - a;
+    double r;
+
+    size_t end = matrix_len(m);
+    for (size_t i = 0; i < end; ++i) {
+        r = (double)rand() / (double)RAND_MAX;  // Generate a random float in range <0, 1>
+        m->values[i] = a + r * len;  // Interpolate the random number to be in correct range
+    }
 }
 
 MATRIX_DEF void matrix_add(matrix* a, matrix const* b) {
@@ -505,6 +531,5 @@ MATRIX_DEF void matrix_transpose(matrix* m) {
     else
         matrix__transpose_small_rectangle(m);
 }
-
 
 #endif // MATRIX_IMPLEMENTATION
