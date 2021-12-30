@@ -193,25 +193,8 @@ MATRIX_DEF matrix matrix_matmul(matrix const* a, matrix const* b);
  */
 MATRIX_DEF void matrix_matmul_into(matrix const* a, matrix const* b, matrix* dest);
 
-#ifndef MATRIX_NO_MALLOC
-
 /**
- * Returns a new matrix that is the result of transposing `m`.
- * Consider using `matrix_copy` with `matrix_transpose`; as that's
- * a much more efficient implementation for smaller matrices.
- *
- * The new matrix needs to be then deallocated with `matrix_del`.
- */
-MATRIX_DEF matrix matrix_transposed(matrix* m);
-
-#endif  // MATRIX_NO_MALLOC
-
-/**
- * In-place version of matrix_transposed.
- *
- * For non-square matrices, that are not column or row vectors
- * (aka. `m->width != m->height && m->width != 1 && m->height != 1`)
- * the size must be at most 64.
+ * Transposes the matrix in-place.
  */
 MATRIX_DEF void matrix_transpose(matrix* m);
 
@@ -425,45 +408,80 @@ MATRIX_DEF void matrix_matmul_into(matrix const* a, matrix const* b, matrix* des
     }
 }
 
-#ifndef MATRIX_NO_MALLOC
+// Private helpers for the in-place transpose
 
-MATRIX_DEF matrix matrix_transposed(matrix* m) {
-    assert(m && m->values);
-    matrix transposed = matrix_new(m->width, m->height);
+/// Returns the number with idx'th bit set
+MATRIX_DEF uint64_t matrix__set_bit(uint64_t number, uint64_t idx) {
+    return number | ((uint64_t)1 << idx);
+}
 
-    for (size_t row = 0; row < m->height; ++row) {
-        for (size_t col = 0; col < m->width; ++col) {
-            matrix_set(
-                &transposed,
-                col,
-                row,
-                matrix_get(m, row, col)
-            );
-        }
+/// Checks whether idx'th bit is set in the number
+MATRIX_DEF bool matrix__has_bit(uint64_t number, uint64_t idx) {
+    return (number & ((uint64_t)1 << idx)) != 0;
+}
+
+/// Sets the idx'th element of the bitset.
+/// Does not check bounds!
+MATRIX_DEF void matrix__bitset_set(uint64_t* bitset, uint64_t idx) {
+    uint64_t h = idx / 64;
+    uint64_t l = idx % 64;
+    bitset[h] |= ((uint64_t)1 << l);
+}
+
+/// Checks the idx'th element of the bitset.
+/// Does not check bounds!
+MATRIX_DEF bool matrix__bitset_has(uint64_t* bitset, uint64_t idx) {
+    uint64_t h = idx / 64;
+    uint64_t l = idx % 64;
+    return (bitset[h] & ((uint64_t)1 << l)) != 0;
+}
+
+MATRIX_DEF void matrix__transpose_rectangle(matrix* m) {
+    size_t size = matrix_len(m) - 1;
+
+    // Initialize the bitset for storing indicies which were already swapped
+    size_t bitset_sz = (size / 64) + 1;
+    uint64_t bitset[bitset_sz];
+    memset(bitset, 0, sizeof(uint64_t) * bitset_sz);
+
+    // Other used attributes
+    size_t i = 1;
+    size_t cycle_begin;
+    size_t next;
+    double temp;
+    double swap_temp;
+
+    while (i < size) {
+        cycle_begin = i;
+        temp = m->values[i];
+
+        do {
+            next = (i * m->height) % size;
+
+            // Swap next with temp
+            swap_temp = m->values[next];
+            m->values[next] = temp;
+            temp = swap_temp;
+
+            matrix__bitset_set(bitset, i);
+            i = next;
+        } while (i != cycle_begin);
+
+        // Find the next cycle
+        for (i = 1; i < size && matrix__bitset_has(bitset, i); ++i);
     }
 
-    return transposed;
-}
-
-#endif  // MATRIX_NO_MALLOC
-
-// Private helpers for the in-place transpose
-MATRIX_DEF uint_fast64_t matrix__set_bit(uint_fast64_t bit_set, uint_fast64_t idx) {
-    return bit_set | (1ul << idx);
-}
-
-MATRIX_DEF bool matrix__has_bit(uint_fast64_t bit_set, uint_fast64_t idx) {
-    return (bit_set & (1ul << idx)) != 0;
+    // Swap width and height
+    i = m->height;
+    m->height = m->width;
+    m->width = i;
 }
 
 MATRIX_DEF void matrix__transpose_small_rectangle(matrix* m) {
-    uint_fast64_t swapped_set = 0;
+    uint64_t swapped_set = 0;
     size_t size = matrix_len(m) - 1;
 
-    assert(size < 64); // Only sizes up to 64 elements are supported
-    // First and last elements are always in correct places
-    // TODO: We could allow sizes up to 66 if we didn't store that info
-    // TODO: Maybe with VLAs we could allow arbitrary big matrices?
+    assert(size < 64);
     swapped_set = matrix__set_bit(swapped_set, 0);
     swapped_set = matrix__set_bit(swapped_set, size);
 
@@ -528,8 +546,10 @@ MATRIX_DEF void matrix_transpose(matrix* m) {
         matrix__transpose_single_col_or_row(m);
     else if (m->width == m->height)
         matrix__transpose_square(m);
-    else
+    else if (matrix_len(m) <= 64)
         matrix__transpose_small_rectangle(m);
+    else
+        matrix__transpose_rectangle(m);
 }
 
 #endif // MATRIX_IMPLEMENTATION
