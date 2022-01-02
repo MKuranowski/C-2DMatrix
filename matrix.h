@@ -272,7 +272,7 @@ MATRIX_DEF matrix matrix_copy(matrix const* m) {
 MATRIX_DEF void matrix_copy_into(matrix const* src, matrix* dest) {
     size_t src_len = matrix_len(src);
     assert(src_len == matrix_len(dest));
-    memcpy(dest->values, src->values, sizeof(double) * matrix_len(src));
+    memcpy(dest->values, src->values, sizeof(double) * src_len);
 }
 
 MATRIX_DEF size_t matrix_len(matrix const* m) {
